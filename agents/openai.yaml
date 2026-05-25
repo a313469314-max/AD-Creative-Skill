@@ -1,0 +1,4 @@
+﻿interface:
+  display_name: "YKZ 创意处理技能"
+  short_description: "参考视频拆解与产品映射"
+  default_prompt: "单条游戏广告参考视频请使用 $ykz-creative-process-skill single；同方向批量视频请使用 $ykz-creative-process-skill mix。在映射到自己的产品前，请先补全 product-brief.md。"
