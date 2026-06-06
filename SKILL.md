@@ -1,14 +1,14 @@
 ﻿---
-name: ykz-creative-process-skill
+name: AD-Creative-Skill
 description: >
   面向游戏买量参考视频的通用素材处理技能。适用于用户调用
-  $ykz-creative-process-skill、single 或 mix 来处理新的参考视频、
+  $AD-Creative-Skill、single 或 mix 来处理新的参考视频、
   生成关键帧联系表、创建素材文件夹、产出 product-brief.md、拆解游戏广告钩子、
   将参考结构映射到自己的产品，或建立故事方向池。支持 single 处理单条参考视频，
   也支持 mix 将多条同方向视频汇总到同一个文件夹中分析。
 ---
 
-# YKZ 创意处理技能
+# AD Creative Skill
 
 使用这个技能把游戏买量参考视频整理成结构清晰、便于复查的创意分析素材包。
 

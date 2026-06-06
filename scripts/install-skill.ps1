@@ -12,7 +12,7 @@ $selfContainedSkill = Test-Path -LiteralPath (Join-Path $scriptParent.Path 'SKIL
 $source = if ($selfContainedSkill) {
     $scriptParent.Path
 } else {
-    Join-Path $scriptParent.Path 'skills\ykz-creative-process-skill'
+    Join-Path $scriptParent.Path 'skills\AD-Creative-Skill'
 }
 $scriptsSource = Join-Path $source 'scripts'
 if (-not (Test-Path -LiteralPath $source -PathType Container)) {
@@ -34,7 +34,7 @@ if ([string]::IsNullOrWhiteSpace($CodexSkillsDir)) {
 }
 
 New-Item -ItemType Directory -Path $CodexSkillsDir -Force | Out-Null
-$destination = Join-Path $CodexSkillsDir 'ykz-creative-process-skill'
+$destination = Join-Path $CodexSkillsDir 'AD-Creative-Skill'
 $sourceResolved = (Resolve-Path -LiteralPath $source).Path
 $destinationResolved = if (Test-Path -LiteralPath $destination) {
     (Resolve-Path -LiteralPath $destination).Path
@@ -64,6 +64,6 @@ Copy-Item -LiteralPath $source -Destination $destination -Recurse
 if (-not (Test-Path -LiteralPath (Join-Path $destination 'scripts') -PathType Container)) {
     Copy-Item -LiteralPath $scriptsSource -Destination (Join-Path $destination 'scripts') -Recurse
 }
-"Installed ykz-creative-process-skill to: $destination"
+"Installed AD-Creative-Skill to: $destination"
 "Bundled scripts copied to: $(Join-Path $destination 'scripts')"
 "Restart Codex or start a new session if the skill does not appear immediately."
