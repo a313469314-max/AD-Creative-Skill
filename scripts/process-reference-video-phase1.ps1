@@ -83,7 +83,7 @@ $checkResult = $checkJson | ConvertFrom-Json
     check_warnings = $checkResult.warnings
     check_content_placeholders_remaining = $checkResult.content_placeholders_remaining
     check_placeholder_warnings = $checkResult.placeholder_warnings
-    next_step = 'AI 先阅读 _system-review/ai-input-pack.md、product-brief.md 和 keyframe contact sheet，再补写输出文档中的骨架内容。如果 product-brief.md 仍不完整，产品映射保持为待补充。'
+    next_step = 'AI 先阅读 methodology/ad-creative-methodology.md、_system-review/ai-input-pack.md、product-brief.md 和 keyframe contact sheet，再补写输出文档中的骨架内容，并说明采用方法、排除方法、承接桥、产品证明和触发机制。如果 product-brief.md 仍不完整，产品映射保持为待补充。'
 } | ConvertTo-Json -Depth 8
 
 if ($checkExit -ne 0) {

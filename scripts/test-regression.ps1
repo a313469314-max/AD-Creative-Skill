@@ -33,6 +33,23 @@ function Assert-Condition {
     }
 }
 
+function Assert-FileContains {
+    param(
+        [string]$Path,
+        [string[]]$Needles
+    )
+    Assert-Condition -Condition (Test-Path -LiteralPath $Path -PathType Leaf) -Message "Expected file not found: $Path"
+    $content = Get-Content -LiteralPath $Path -Raw
+    foreach ($needle in $Needles) {
+        Assert-Condition -Condition ($content.Contains($needle)) -Message "Expected file to contain '$needle': $Path"
+    }
+}
+
+function New-Utf8Needles {
+    param([string[]]$Values)
+    return @($Values | ForEach-Object { [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($_)) })
+}
+
 function Remove-TestRoot {
     param([string]$Path)
     if (-not (Test-Path -LiteralPath $Path)) {
@@ -43,7 +60,18 @@ function Remove-TestRoot {
     if (-not $resolved.Path.StartsWith($tmpResolved.Path)) {
         throw "Refusing to remove path outside regression test root: $($resolved.Path)"
     }
-    Remove-Item -LiteralPath $resolved.Path -Recurse -Force
+    $lastError = $null
+    for ($attempt = 1; $attempt -le 3; $attempt++) {
+        try {
+            Get-ChildItem -LiteralPath $resolved.Path -Recurse -Force -ErrorAction SilentlyContinue | ForEach-Object { $_.Attributes = 'Normal' }
+            Remove-Item -LiteralPath $resolved.Path -Recurse -Force -ErrorAction Stop
+            return
+        } catch {
+            $lastError = $_
+            Start-Sleep -Milliseconds (250 * $attempt)
+        }
+    }
+    throw $lastError
 }
 
 function New-TestDir {
@@ -232,6 +260,13 @@ function Test-SinglePathWithSpaces {
     )) {
         Assert-Condition -Condition (Test-Path -LiteralPath $path) -Message "single material missing expected path: $path"
     }
+
+    Assert-FileContains -Path (Join-Path $materialDir 'outputs\creative-script-directions.md') -Needles (New-Utf8Needles @('6YeH55So5pa55rOV', '5o6S6Zmk5pa55rOV', '5om/5o6l5qGl', '5Lqn5ZOB6K+B5piO', '6Kem5Y+R5py65Yi2'))
+    Assert-FileContains -Path (Join-Path $materialDir 'outputs\reference-video-storyboard.md') -Needles ((New-Utf8Needles @('5bqV5bGC57uT5p6E', '6ZKp5a2Q5py65Yi2', '5LiN5Y+v54Wn5pCs54K5')) + @('production storyboard'))
+    Assert-FileContains -Path (Join-Path $materialDir '_system-review\ai-input-pack.md') -Needles @('methodology/ad-creative-methodology.md', 'production storyboard', 'script-*')
+    $forbiddenProductionDirs = @(Get-ChildItem -LiteralPath $materialDir -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -like 'production*' -or $_.Name -like 'prompt*' -or $_.Name -like 'script-*' })
+    $forbiddenProductionDirNames = @($forbiddenProductionDirs | ForEach-Object { $_.FullName })
+    Assert-Condition -Condition ($forbiddenProductionDirs.Count -eq 0) -Message "single material should not create Phase2 directories: $($forbiddenProductionDirNames -join ', ')"
 }
 
 function Test-MixAutoCheck {
@@ -278,6 +313,12 @@ function Test-MixAutoCheck {
     )) {
         Assert-Condition -Condition (Test-Path -LiteralPath $path) -Message "mix material missing expected path: $path"
     }
+
+    Assert-FileContains -Path (Join-Path $materialDir 'outputs\shared-analysis-mix.md') -Needles (New-Utf8Needles @('5YWx5ZCM5py65Yi2', '6KeG6aKR5beu5byC', '5pa55rOV5Yy56YWN', '5pa55ZCR5rGg5LyY5YWI57qn', '5om/5o6l5qGl', '5Lqn5ZOB6K+B5piO', '6Kem5Y+R5py65Yi2'))
+    Assert-FileContains -Path (Join-Path $materialDir '_system-review\ai-input-pack.md') -Needles @('methodology/ad-creative-methodology.md', 'production storyboard', 'script-*')
+    $forbiddenProductionDirs = @(Get-ChildItem -LiteralPath $materialDir -Directory -ErrorAction SilentlyContinue | Where-Object { $_.Name -like 'production*' -or $_.Name -like 'prompt*' -or $_.Name -like 'script-*' })
+    $forbiddenProductionDirNames = @($forbiddenProductionDirs | ForEach-Object { $_.FullName })
+    Assert-Condition -Condition ($forbiddenProductionDirs.Count -eq 0) -Message "mix material should not create Phase2 directories: $($forbiddenProductionDirNames -join ', ')"
 }
 
 function Test-MixRejectsAudioOnlyInput {

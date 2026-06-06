@@ -19,6 +19,8 @@ description: >
 
 两种模式都以代码流程为先。先运行内置脚本，再进行 AI 写作。优先使用本技能目录下的 `scripts/`；如果你正在克隆仓库里工作，根目录下的 `scripts/` 也等价。给人看的文件放在素材根目录，自动化辅助文件放在 `_system-review/`。
 
+AI 写作阶段必须先阅读 `methodology/ad-creative-methodology.md`。该文件是本技能的精简方法库，用来选择创意方法、判断承接桥和产品证明、区分可迁移结构与不可照搬表层。
+
 ## 路由规则
 
 当用户只提供一条新参考视频，或者没有明确说明多条视频属于同一个共享方向时，使用 `single`。
@@ -34,8 +36,10 @@ description: >
 - 原始视频和关键帧联系表都保留在素材根目录。
 - 产品信息放在 `product-brief.md`。
 - metadata、frame index、manifest 和 AI input pack 统一放在 `_system-review/`。
+- 方法论放在 `methodology/ad-creative-methodology.md`，AI 写作前必须读取。
 - 做产品映射时必须参考产品信息。如果产品信息缺失，或者仍然含有 TODO，不要编造产品事实；列出缺失问题，并把产品映射标记为待补充。
 - 第一阶段先产出故事方向池。在用户选定具体方向之前，不要创建 production storyboard、prompt 或 `script-*` 文件夹。
+- `outputs/reference-video-storyboard.md` 只用于拆解原参考视频的场景变化和底层结构，不是给用户产品制作新的 production storyboard。
 - 将“选方向”和“做完成稿”拆开：selection 只负责记录选中的方向，completion 才负责归档和清理最终生产资产。
 - 输出内容保持便于人阅读：先结论和优先级，再补充细节。
 
@@ -56,6 +60,7 @@ description: >
 
 然后阅读：
 
+- `methodology/ad-creative-methodology.md`
 - `_system-review/ai-input-pack.md`
 - `_system-review/frame-index.json`
 - `_system-review/video_metadata.json`
@@ -103,6 +108,19 @@ description: >
 
 如果这些信息缺失，就输出一份简洁的缺失信息清单。参考视频的拆解仍然要有价值，但不要声称产品映射已经完成。
 
+## 方法论调用要求
+
+AI 补写 `outputs/` 前，先用 `methodology/ad-creative-methodology.md` 做一次简短诊断。
+
+正式输出至少说明：
+
+- 本次调用了哪些产品上下文。
+- 本次主要诊断问题是什么。
+- 本次采用了哪些方法。
+- 哪些方法被排除，为什么。
+
+方法选择以素材缺口为准：缺好奇心、缺冲突、缺反馈、缺视觉刺激、缺产品承接，或筛错用户。一次方向建议最多选择一个主方法和一个辅助方法，避免把方法卡片堆成清单。
+
 ## 输出要求
 
 无论 `single` 还是 `mix`，都要分析：
@@ -114,6 +132,7 @@ description: >
 - 可获得时的 BGM、SFX、旁白与字幕
 - 可迁移结构与表层风格的区别
 - 如何承接到真实玩法或产品价值
+- 采用方法、排除方法、承接桥、产品证明、素材定位和触发机制
 
 每个故事方向都应包含：
 
@@ -121,8 +140,11 @@ description: >
 - hook
 - 故事前提
 - 冲突与触发机制
+- 采用方法与排除方法
+- 承接桥与产品证明
 - 产品承接
 - 产品映射适配度与缺失的产品信息
+- 目标用户信号
 - 可扩展变体
 - 待测试指标
 - 风险
@@ -134,6 +156,7 @@ description: >
 
 - 已确认当前使用的是 `single` 还是 `mix`。
 - AI 写作前已经先跑完代码侧准备。
+- AI 写作前已经读取 `methodology/ad-creative-methodology.md`。
 - 已确认素材文件夹路径。
 - 已确认 `_system-review/` 中包含 metadata、frame index、manifest 和 AI input pack。
 - 已确认根目录包含参考视频、关键帧联系表、brief、product brief 和 outputs。

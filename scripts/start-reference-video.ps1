@@ -178,6 +178,8 @@ New-Item -ItemType Directory -Path $materialDir | Out-Null
 $outputsDir = Join-Path $materialDir 'outputs'
 $systemDir = Join-Path $materialDir '_system-review'
 New-Item -ItemType Directory -Path $outputsDir, $systemDir | Out-Null
+$skillRoot = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..') -ErrorAction SilentlyContinue
+$methodologyPath = if ($skillRoot) { Join-Path $skillRoot.Path 'methodology\ad-creative-methodology.md' } else { 'methodology\ad-creative-methodology.md' }
 
 $destVideo = Join-Path $materialDir "original-$Name$extension"
 if ($Move) {
@@ -374,6 +376,7 @@ $briefPath = Join-Path $materialDir 'brief.md'
 - 关键帧联系表：[keyframes-reference-storyboard-contact-sheet-$Name.jpg](keyframes-reference-storyboard-contact-sheet-$Name.jpg)
 - 输出目录：[outputs](outputs/)
 - 产品信息：[product-brief.md](product-brief.md)
+- 方法库：$methodologyPath
 
 ## 产品上下文
 
@@ -381,8 +384,10 @@ $briefPath = Join-Path $materialDir 'brief.md'
 
 ## AI 输出要求
 
+- 先阅读方法库，说明采用方法、排除方法、承接桥、产品证明和触发机制。
 - 补写 `outputs/reference-video-storyboard.md`。
 - 补写 `outputs/creative-script-directions.md`。
+- `outputs/reference-video-storyboard.md` 只拆解原参考视频，不是给用户产品制作新的 production storyboard。
 - 第一阶段先产出故事方向池。
 - 在方向选定之前，不要创建 production storyboard 或 prompt 文件夹。
 "@ | Set-Content -LiteralPath $briefPath -Encoding UTF8
@@ -391,33 +396,71 @@ $referencePath = Join-Path $outputsDir 'reference-video-storyboard.md'
 @"
 # 参考视频分镜拆解
 
+此文件只拆解原参考视频的场景变化、底层结构和可迁移机制，不是用户产品的 production storyboard。
+
 ## 关键帧与元数据
 
 - 关键帧联系表：[keyframes-reference-storyboard-contact-sheet-$Name.jpg](../keyframes-reference-storyboard-contact-sheet-$Name.jpg)
 - 元数据：[video_metadata.json](../_system-review/video_metadata.json)
+- 方法库：$methodologyPath
+
+## 方法论诊断
+
+| 项目 | 结论 |
+| --- | --- |
+| 本次调用的产品上下文 | TODO |
+| 主要诊断问题 | TODO |
+| 采用方法 | TODO |
+| 排除方法及原因 | TODO |
+| 承接桥判断 | TODO |
+| 产品证明判断 | TODO |
+| 素材定位判断 | TODO |
+| 触发机制判断 | TODO |
 
 ## 场景推进
 
-| 顺序 | 代表帧 | 画面内容 | 信息推进 | 可迁移结构 |
-| --- | --- | --- | --- | --- |
-| 1 | TODO | TODO | TODO | TODO |
+| 时间/代表帧 | 表层画面 | 底层结构 | 钩子机制 | 冲突压力 | 剪辑节奏 | 可迁移点 | 不可照搬点 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
 
 ## 底层结构
 
-TODO
+| 结构层 | 观察 | 是否可迁移 | 迁移条件 |
+| --- | --- | --- | --- |
+| 注意力入口 | TODO | TODO | TODO |
+| 冲突推进 | TODO | TODO | TODO |
+| 关键变化 | TODO | TODO | TODO |
+| 情绪 payoff | TODO | TODO | TODO |
+| 产品证明 | TODO | TODO | TODO |
 
 ## 迁移备注
 
-TODO
+| 可迁移结构 | 适配原因 | 需要产品信息 | 风险 |
+| --- | --- | --- | --- |
+| TODO | TODO | TODO | TODO |
 
 ## 不要直接照搬的内容
 
-TODO
+| 表层元素 | 不建议照搬原因 | 可替代的底层机制 |
+| --- | --- | --- |
+| TODO | TODO | TODO |
 "@ | Set-Content -LiteralPath $referencePath -Encoding UTF8
 
 $directionsPath = Join-Path $outputsDir 'creative-script-directions.md'
 @"
 # 创意脚本方向
+
+请先阅读方法库：$methodologyPath
+
+## 方法论调用记录
+
+| 项目 | 结论 |
+| --- | --- |
+| 本次调用的产品上下文 | TODO |
+| 主要诊断问题 | TODO |
+| 采用方法 | TODO |
+| 排除方法及原因 | TODO |
+| Phase1 边界确认 | 只输出候选故事方向，不创建 production storyboard、prompt 或 script-* 文件夹。 |
 
 ## 前提假设
 
@@ -425,15 +468,23 @@ TODO
 
 ## 方向总览
 
-| 方向 | 核心 hook | 用户欲望 | 要测试什么 | 风险 |
-| --- | --- | --- | --- | --- |
-| 1 | TODO | TODO | TODO | TODO |
+| 方向 | 优先级 | 采用方法 | 排除方法 | 核心 hook | 承接桥 | 产品证明 | 触发机制 | 目标用户信号 | 测试指标 | 风险 | 人工判断点 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
 
 ## 方向 1
 
 ### 核心假设
 
 TODO
+
+### 采用方法与排除方法
+
+| 类型 | 方法 | 理由 |
+| --- | --- | --- |
+| 主方法 | TODO | TODO |
+| 辅助方法 | TODO | TODO |
+| 排除方法 | TODO | TODO |
 
 ### Hook
 
@@ -447,6 +498,16 @@ TODO
 
 TODO
 
+### 承接桥与产品证明
+
+| 项目 | 内容 |
+| --- | --- |
+| 承接桥 | TODO |
+| 产品证明 | TODO |
+| 触发机制 | TODO |
+| 可见反馈 | TODO |
+| 素材定位 | TODO |
+
 ### 产品承接
 
 TODO
@@ -454,6 +515,12 @@ TODO
 ### 产品映射
 
 请参考 `../product-brief.md`。如果其中仍然包含 TODO，或缺少产品特定信息，请列出缺失问题，并将产品映射标记为待补充。
+
+### 目标用户信号
+
+| 信号 | 画面或机制 | 预期筛选作用 |
+| --- | --- | --- |
+| TODO | TODO | TODO |
 
 ### 可扩展变体
 
@@ -476,6 +543,8 @@ $aiInputPackPath = Join-Path $systemDir 'ai-input-pack.md'
 
 ## 路径
 
+- 方法库：$methodologyPath
+- 方法库相对路径：methodology/ad-creative-methodology.md
 - 素材文件夹：$materialDir
 - 源视频：$destVideo
 - 关键帧联系表：$finalSheet
@@ -493,12 +562,14 @@ $aiInputPackPath = Join-Path $systemDir 'ai-input-pack.md'
 
 ## 第一阶段规则
 
+- 先阅读方法库，按素材缺口选择采用方法和排除方法。
 - 补写 reference-video-storyboard.md。
 - 补写 creative-script-directions.md。
+- reference-video-storyboard.md 只拆解原参考视频，不是 production storyboard。
 - 做产品映射时请使用 product-brief.md。
 - 如果 product-brief.md 仍包含 TODO，或缺少产品特定信息，不要编造产品事实；输出缺失问题，并把产品映射保持为待补充状态。
 - 只创建故事方向池。
-- 在用户选择方向之前，不要创建 production scripts 或 prompts。
+- 在用户选择方向之前，不要创建 production storyboard、production scripts、prompts 或 script-* 文件夹。
 "@ | Set-Content -LiteralPath $aiInputPackPath -Encoding UTF8
 
 $manifestPath = Join-Path $systemDir 'run-manifest.json'
@@ -521,10 +592,11 @@ $manifestPath = Join-Path $systemDir 'run-manifest.json'
         scene = @(Get-ChildItem -LiteralPath $sceneDir -Filter '*.jpg').Count
     }
     next_ai_inputs = @(
+        '先阅读 methodology/ad-creative-methodology.md。',
         '先阅读 _system-review/ai-input-pack.md。',
         '查看一次 final_storyboard_sheet。',
         '使用 _system-review/frame-index.json 获取时间戳和联系表位置。',
-        '用 AI 分析替换 outputs 中的骨架文案。'
+        '用 AI 分析替换 outputs 中的骨架文案，并说明采用方法、排除方法、承接桥、产品证明和触发机制。'
     )
 } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $manifestPath -Encoding UTF8
 

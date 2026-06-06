@@ -137,6 +137,8 @@ $outputsDir = Join-Path $materialDir 'outputs'
 $systemDir = Join-Path $materialDir '_system-review'
 $workDir = Join-Path $materialDir 'keyframes-work'
 New-Item -ItemType Directory -Path $materialDir, $outputsDir, $systemDir, $workDir -Force | Out-Null
+$skillRoot = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..') -ErrorAction SilentlyContinue
+$methodologyPath = if ($skillRoot) { Join-Path $skillRoot.Path 'methodology\ad-creative-methodology.md' } else { 'methodology\ad-creative-methodology.md' }
 
 $productBriefOutputPath = Join-Path $materialDir 'product-brief.md'
 if (-not [string]::IsNullOrWhiteSpace($ProductBriefPath)) {
@@ -298,6 +300,7 @@ $(
 - 系统文件位于 `_system-review/`。
 - 汇总分析写入 `outputs/`。
 - 产品信息：[product-brief.md](product-brief.md)
+- 方法库：$methodologyPath
 
 ## 共用创意方向
 
@@ -306,31 +309,74 @@ TODO：描述这组视频共享的 hook、主题或创意方向。
 ## 产品映射上下文
 
 在把这个共享方向映射到你的产品前，请先补全 `product-brief.md`。
+
+## AI 输出要求
+
+- 先阅读方法库，说明采用方法、排除方法、承接桥、产品证明和触发机制。
+- 把这些视频当作同一个方向级任务，汇总共同机制和差异点。
+- 第一阶段只输出故事方向池，不创建 production storyboard、prompt 或 script-* 文件夹。
 "@ | Set-Content -LiteralPath $briefPath -Encoding UTF8
 
 $sharedPath = Join-Path $outputsDir 'shared-analysis-mix.md'
 @"
 # 汇总分析
 
-## 共用 Hook
+请先阅读方法库：$methodologyPath
 
-TODO
+## 方法论调用记录
+
+| 项目 | 结论 |
+| --- | --- |
+| 本次调用的产品上下文 | TODO |
+| 主要诊断问题 | TODO |
+| 采用方法 | TODO |
+| 排除方法及原因 | TODO |
+| Phase1 边界确认 | 只输出候选故事方向，不创建 production storyboard、prompt 或 script-* 文件夹。 |
+
+## 共同机制
+
+| 机制 | 共同表现 | 对应方法 | 可迁移价值 | 风险 |
+| --- | --- | --- | --- | --- |
+| 共享 hook | TODO | TODO | TODO | TODO |
+| 承接桥 | TODO | TODO | TODO | TODO |
+| 产品证明 | TODO | TODO | TODO | TODO |
+| 触发机制 | TODO | TODO | TODO | TODO |
+| 剪辑节奏 | TODO | TODO | TODO | TODO |
 
 ## 视频差异点
 
-TODO
+| 视频 | 表层差异 | 底层结构差异 | 情绪差异 | 可学习点 |
+| --- | --- | --- | --- | --- |
+| TODO | TODO | TODO | TODO | TODO |
 
 ## 可迁移结构
 
-TODO
+| 可迁移结构 | 来自哪些视频 | 适配原因 | 需要产品信息 | 不可照搬点 |
+| --- | --- | --- | --- | --- |
+| TODO | TODO | TODO | TODO | TODO |
+
+## 方法匹配
+
+| 方法 | 适配度 | 支持证据 | 排除或限制原因 |
+| --- | --- | --- | --- |
+| TODO | TODO | TODO | TODO |
 
 ## 产品映射
 
 请参考 `../product-brief.md`。如果其中仍然包含 TODO，或缺少产品特定信息，请列出缺失问题，并将产品映射标记为待补充。
 
-## 创意方向池
+| 映射项 | 当前判断 | 缺失信息 | 风险 |
+| --- | --- | --- | --- |
+| 承接桥 | TODO | TODO | TODO |
+| 产品证明 | TODO | TODO | TODO |
+| 目标用户信号 | TODO | TODO | TODO |
+| 测试指标 | TODO | TODO | TODO |
 
-TODO
+## 创意方向池优先级
+
+| 方向 | 优先级 | 采用方法 | 排除方法 | 共享 hook | 可迁移结构 | 承接桥 | 产品证明 | 触发机制 | 目标用户信号 | 测试指标 | 风险 | 人工判断点 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
 "@ | Set-Content -LiteralPath $sharedPath -Encoding UTF8
 
 $aiPackPath = Join-Path $systemDir 'ai-input-pack.md'
@@ -341,6 +387,8 @@ $aiPackPath = Join-Path $systemDir 'ai-input-pack.md'
 
 ## 文件
 
+- 方法库：$methodologyPath
+- 方法库相对路径：methodology/ad-creative-methodology.md
 - 任务说明：$briefPath
 - 汇总分析：$sharedPath
 - 产品信息：$productBriefOutputPath
@@ -349,8 +397,10 @@ $aiPackPath = Join-Path $systemDir 'ai-input-pack.md'
 
 ## 规则
 
+请先阅读方法库，按素材缺口选择采用方法和排除方法。
 请把这些视频当作一个方向级创意任务来分析，不要拆分成多个独立的 single 视频文件夹。
 做产品映射时请使用 product-brief.md。如果产品信息缺失，不要编造产品事实；输出缺失问题，并把产品映射保持为待补充状态。
+Phase1 只输出候选故事方向，不要创建 production storyboard、prompt、出图内容或 script-* 文件夹。
 "@ | Set-Content -LiteralPath $aiPackPath -Encoding UTF8
 
 $manifestPath = Join-Path $systemDir 'run-manifest.json'
