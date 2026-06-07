@@ -1,0 +1,17 @@
+competitors:
+  categories: []
+  materials: []
+
+schema:
+  required_fields:
+    - competitor_id
+    - category
+    - source_path_or_link
+    - market_channel
+    - core_hook
+    - creative_structure
+    - gameplay_claim
+    - proof_style
+    - transferable_pattern
+    - non_transferable_surface
+    - risk_notes

@@ -17,6 +17,10 @@
 
     [string]$ProductBriefPath,
 
+    [string]$ProductId,
+
+    [string]$ProductProfileDir,
+
     [switch]$Copy,
 
     [switch]$Move,
@@ -48,6 +52,8 @@ if (-not [string]::IsNullOrWhiteSpace($BaseDir)) { $startArgs.BaseDir = $BaseDir
 if (-not [string]::IsNullOrWhiteSpace($FfmpegPath)) { $startArgs.FfmpegPath = $FfmpegPath }
 if (-not [string]::IsNullOrWhiteSpace($FfprobePath)) { $startArgs.FfprobePath = $FfprobePath }
 if (-not [string]::IsNullOrWhiteSpace($ProductBriefPath)) { $startArgs.ProductBriefPath = $ProductBriefPath }
+if (-not [string]::IsNullOrWhiteSpace($ProductId)) { $startArgs.ProductId = $ProductId }
+if (-not [string]::IsNullOrWhiteSpace($ProductProfileDir)) { $startArgs.ProductProfileDir = $ProductProfileDir }
 if ($Copy) { $startArgs.Copy = $true }
 if ($Move) { $startArgs.Move = $true }
 if ($KeepWork) { $startArgs.KeepWork = $true }
@@ -78,12 +84,13 @@ $checkResult = $checkJson | ConvertFrom-Json
     reference_storyboard = $startResult.reference_storyboard
     creative_directions = $startResult.creative_directions
     manifest = $startResult.manifest
+    product_context = $startResult.product_context
     check_status = $checkResult.status
     check_errors = $checkResult.errors
     check_warnings = $checkResult.warnings
     check_content_placeholders_remaining = $checkResult.content_placeholders_remaining
     check_placeholder_warnings = $checkResult.placeholder_warnings
-    next_step = 'AI 先阅读 methodology/ad-creative-methodology.md、_system-review/ai-input-pack.md、product-brief.md 和 keyframe contact sheet，再补写输出文档中的骨架内容，并说明采用方法、排除方法、承接桥、产品证明和触发机制。如果 product-brief.md 仍不完整，产品映射保持为待补充。'
+    next_step = 'AI 先阅读 methodology/ad-creative-methodology.md、_system-review/ai-input-pack.md、product-brief.md 和 keyframe contact sheet；需要更细方法解释时再查阅 methodology/full/README.md。如果提供了产品上下文，按产品事实优先级补充产品适配度、可承接机制、可用资产和历史素材依据；如果本次对话另附当前产品真实录屏，该录屏分析只用于本次产品判断。如果 product-brief.md 仍不完整，产品映射保持为待补充。'
 } | ConvertTo-Json -Depth 8
 
 if ($checkExit -ne 0) {

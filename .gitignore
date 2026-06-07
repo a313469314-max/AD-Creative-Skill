@@ -1,0 +1,27 @@
+# Local runtime output
+.tmp/
+creative-materials/
+artifacts/
+data/
+
+# Generated video evidence and heavy media
+*.mp4
+*.mov
+*.mkv
+*.webm
+*.avi
+*.m4v
+products/**/recordings/**/evidence/
+products/**/recordings/**/_system-review/
+products/**/recordings/**/source/
+
+# Generated logs and temporary files
+*.log
+*.log.stdout
+*.log.stderr
+*.tmp
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+desktop.ini

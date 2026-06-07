@@ -1,0 +1,24 @@
+id: example-product
+name: Example Product
+status: template
+genre:
+  - rpg
+  - collection
+  - battle
+primary_playbooks:
+  - battle
+  - collection
+  - progression
+product_files:
+  - product-profile.md
+  - gameplay-systems.md
+  - hook-mapping.md
+  - asset-inventory.md
+  - creative-rules.md
+  - metrics-policy.md
+material_memory:
+  index: materials/material-index.yaml
+  winners: memory/winning-patterns.md
+  rejected: memory/rejected-patterns.md
+recordings:
+  index: recordings/recording-index.yaml

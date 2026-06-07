@@ -1,0 +1,18 @@
+﻿id: daihao-shouwei
+name: 代号守卫
+status: draft
+genre: []
+primary_playbooks: []
+product_files:
+  - product-profile.md
+  - gameplay-systems.md
+  - hook-mapping.md
+  - asset-inventory.md
+  - creative-rules.md
+  - metrics-policy.md
+recordings:
+  index: recordings/recording-index.yaml
+material_memory:
+  index: materials/material-index.yaml
+  winners: memory/winning-patterns.md
+  rejected: memory/rejected-patterns.md

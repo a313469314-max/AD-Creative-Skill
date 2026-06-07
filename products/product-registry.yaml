@@ -1,0 +1,14 @@
+products:
+  - id: example-product
+    name: Example Product
+    profile_dir: products/example-product
+    primary_playbooks:
+      - battle
+      - collection
+      - progression
+    notes: "示例产品包，可复制为真实产品后改名。"
+  - id: daihao-shouwei
+    name: 代号守卫
+    profile_dir: products/daihao-shouwei
+    primary_playbooks: []
+    notes: "《代号守卫》独立产品目录。"

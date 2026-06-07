@@ -17,6 +17,10 @@
 
     [string]$ProductBriefPath,
 
+    [string]$ProductId,
+
+    [string]$ProductProfileDir,
+
     [switch]$Copy,
 
     [switch]$Move,
@@ -31,6 +35,10 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+. (Join-Path $PSScriptRoot 'product-context.ps1')
+. (Join-Path $PSScriptRoot 'lib\common.ps1')
+. (Join-Path $PSScriptRoot 'lib\template-utils.ps1')
+
 function Assert-SafeFileNamePart {
     param([string]$Value, [string]$FieldName)
     if ([string]::IsNullOrWhiteSpace($Value)) {
@@ -39,107 +47,6 @@ function Assert-SafeFileNamePart {
     if ($Value -match '[\\/:*?"<>|]') {
         throw "$FieldName contains invalid filename characters: $Value"
     }
-}
-
-function Resolve-FilePath {
-    param([string]$Path)
-    $resolved = Resolve-Path -LiteralPath $Path -ErrorAction SilentlyContinue
-    if (-not $resolved) {
-        throw "Path not found: $Path"
-    }
-    return $resolved.Path
-}
-
-function Resolve-Executable {
-    param([string]$ExplicitPath, [string]$CommandName)
-    if (-not [string]::IsNullOrWhiteSpace($ExplicitPath)) {
-        return Resolve-FilePath $ExplicitPath
-    }
-    $cmd = Get-Command $CommandName -ErrorAction SilentlyContinue
-    if (-not $cmd) {
-        $paramName = if ($CommandName -eq 'ffmpeg') { 'FfmpegPath' } elseif ($CommandName -eq 'ffprobe') { 'FfprobePath' } else { "$($CommandName)Path" }
-        throw "Required executable not found on PATH: $CommandName. Install FFmpeg first, then rerun scripts/check-environment.ps1. Windows: winget install Gyan.FFmpeg. macOS: brew install ffmpeg. Linux: use your package manager. If it is already installed, pass -$paramName with the full executable path."
-    }
-    return $cmd.Source
-}
-
-function Parse-Fps {
-    param([string]$Rate)
-    if (-not $Rate -or $Rate -notmatch '/') {
-        return $null
-    }
-    $parts = $Rate.Split('/')
-    $num = [double]$parts[0]
-    $den = [double]$parts[1]
-    if ($den -eq 0) {
-        return $null
-    }
-    return [Math]::Round($num / $den, 4)
-}
-
-function Invoke-Logged {
-    param(
-        [string]$Exe,
-        [string[]]$Arguments,
-        [string]$LogPath,
-        [switch]$AllowFailure
-    )
-    $stdoutPath = "$LogPath.stdout"
-    $stderrPath = "$LogPath.stderr"
-    $previousErrorActionPreference = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    try {
-        & $Exe @Arguments > $stdoutPath 2> $stderrPath
-        $exitCode = $LASTEXITCODE
-    } finally {
-        $ErrorActionPreference = $previousErrorActionPreference
-    }
-
-    $combined = @()
-    if (Test-Path -LiteralPath $stdoutPath) {
-        $combined += Get-Content -LiteralPath $stdoutPath
-        Remove-Item -LiteralPath $stdoutPath -Force
-    }
-    if (Test-Path -LiteralPath $stderrPath) {
-        $combined += Get-Content -LiteralPath $stderrPath
-        Remove-Item -LiteralPath $stderrPath -Force
-    }
-    $combined | Set-Content -LiteralPath $LogPath -Encoding UTF8
-
-    if ($exitCode -ne 0) {
-        if ($AllowFailure) {
-            return $false
-        }
-        throw "Command failed. See log: $LogPath"
-    }
-    if ($AllowFailure) {
-        return $true
-    }
-    return $true
-}
-
-function New-TileSheet {
-    param(
-        [string]$Ffmpeg,
-        [string]$Pattern,
-        [int]$Count,
-        [int]$Columns,
-        [string]$OutputPath,
-        [string]$LogPath
-    )
-    if ($Count -le 0) {
-        return $false
-    }
-    $rows = [Math]::Ceiling($Count / $Columns)
-    Invoke-Logged -Exe $Ffmpeg -Arguments @(
-        '-hide_banner', '-y',
-        '-framerate', '1',
-        '-i', $Pattern,
-        '-vf', "tile=${Columns}x${rows}:padding=4:margin=2",
-        '-frames:v', '1',
-        $OutputPath
-    ) -LogPath $LogPath | Out-Null
-    return $true
 }
 
 Assert-SafeFileNamePart -Value $Name -FieldName 'Name'
@@ -179,7 +86,11 @@ $outputsDir = Join-Path $materialDir 'outputs'
 $systemDir = Join-Path $materialDir '_system-review'
 New-Item -ItemType Directory -Path $outputsDir, $systemDir | Out-Null
 $skillRoot = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..') -ErrorAction SilentlyContinue
-$methodologyPath = if ($skillRoot) { Join-Path $skillRoot.Path 'methodology\ad-creative-methodology.md' } else { 'methodology\ad-creative-methodology.md' }
+$skillRootPath = if ($skillRoot) { $skillRoot.Path } else { Split-Path -Parent $PSScriptRoot }
+$methodologyPath = Join-Path $skillRootPath 'methodology\ad-creative-methodology.md'
+$fullMethodologyIndexPath = Join-Path $skillRootPath 'methodology\full\README.md'
+$productContext = Resolve-ProductContext -SkillRoot $skillRootPath -ProductId $ProductId -ProductProfileDir $ProductProfileDir
+$productContextMarkdown = New-ProductContextMarkdown -ProductContext $productContext
 
 $destVideo = Join-Path $materialDir "original-$Name$extension"
 if ($Move) {
@@ -195,49 +106,9 @@ if (-not [string]::IsNullOrWhiteSpace($ProductBriefPath)) {
     $resolvedProductBrief = Resolve-FilePath $ProductBriefPath
     Copy-Item -LiteralPath $resolvedProductBrief -Destination $productBriefOutputPath
 } else {
-@"
-# 产品信息简报
-
-在要求 AI 将参考视频映射到你的产品前，请先补全这里的信息。
-
-## 产品基础信息
-
-- 产品/游戏名称：TODO
-- 品类/赛道：TODO
-- 目标市场与受众：TODO
-- 平台与投放渠道：TODO
-
-## 核心玩法
-
-- 核心循环：TODO
-- 用户前 30 秒的真实体验：TODO
-- 广告里可以真实展示的核心交互：TODO
-- 成长、升级、merge、battle、puzzle、building、collection 或其他系统：TODO
-
-## 可售卖 Hook
-
-- 最强的幻想点或欲望点：TODO
-- 当前已经具备的视觉资产：TODO
-- 能承接参考 hook 的产品机制：TODO
-- hook 之后的情绪回报：TODO
-
-## 限制条件
-
-- 必须展示：TODO
-- 必须避免：TODO
-- 制作限制：TODO
-- 合规/平台限制：TODO
-
-## 映射目标
-
-- 获客目标：TODO
-- 要测试的创意角度：TODO
-- 成功指标：TODO
-
-## 隐私提醒
-
-请勿在此文件中填写 API keys、未公开财务数据、个人隐私信息或合作方私密数据。
-"@ | Set-Content -LiteralPath $productBriefOutputPath -Encoding UTF8
+    Write-TemplateFile `
+        -TemplatePath (Join-Path $skillRootPath 'templates\reference\product-brief.md') `
+        -OutputPath $productBriefOutputPath
 }
 
 $probeJson = & $ffprobe -v error -print_format json -show_streams -show_format $destVideo | Out-String
@@ -377,6 +248,11 @@ $briefPath = Join-Path $materialDir 'brief.md'
 - 输出目录：[outputs](outputs/)
 - 产品信息：[product-brief.md](product-brief.md)
 - 方法库：$methodologyPath
+- 全文方法论索引：$fullMethodologyIndexPath
+
+## 产品目录
+
+$productContextMarkdown
 
 ## 产品上下文
 
@@ -385,6 +261,7 @@ $briefPath = Join-Path $materialDir 'brief.md'
 ## AI 输出要求
 
 - 先阅读方法库，说明采用方法、排除方法、承接桥、产品证明和触发机制。
+- 需要更细方法解释或案例机制时，再查阅全文方法论索引。
 - 补写 `outputs/reference-video-storyboard.md`。
 - 补写 `outputs/creative-script-directions.md`。
 - `outputs/reference-video-storyboard.md` 只拆解原参考视频，不是给用户产品制作新的 production storyboard。
@@ -466,6 +343,31 @@ $directionsPath = Join-Path $outputsDir 'creative-script-directions.md'
 
 TODO
 
+## 产品上下文适配
+
+$productContextMarkdown
+
+| 方向 | 产品适配度 | 题材与美术适配 | 可承接机制 | 可用资产 | 视觉记忆点 | 历史素材依据 | 主要缺口 | 建议优先级 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
+
+### 题材与美术适配（真实录屏必填）
+
+如果本次任务附带当前产品的真实游戏录屏，本节必须填写，不可只停留在玩法机制判断。录屏分析默认只服务于本次产品判断，不自动写入产品增强包，也不影响其他游戏或其他素材分析。
+
+| 项目 | 当前观察 | 广告承接价值 | 风险/限制 |
+| --- | --- | --- | --- |
+| 题材类型 | TODO | TODO | TODO |
+| 世界观内容壳 | TODO | TODO | TODO |
+| 美术风格 | TODO | TODO | TODO |
+| 角色/单位卖相 | TODO | TODO | TODO |
+| 场景卖相 | TODO | TODO | TODO |
+| UI 质感 | TODO | TODO | TODO |
+| 技能/特效反馈 | TODO | TODO | TODO |
+| 视觉记忆点 | TODO | TODO | TODO |
+| 可广告化视觉资产 | TODO | TODO | TODO |
+| 不适合作为广告开头的画面 | TODO | TODO | TODO |
+
 ## 方向总览
 
 | 方向 | 优先级 | 采用方法 | 排除方法 | 核心 hook | 承接桥 | 产品证明 | 触发机制 | 目标用户信号 | 测试指标 | 风险 | 人工判断点 |
@@ -516,6 +418,20 @@ TODO
 
 请参考 `../product-brief.md`。如果其中仍然包含 TODO，或缺少产品特定信息，请列出缺失问题，并将产品映射标记为待补充。
 
+### 产品专属适配评分
+
+| 项目 | 判断 |
+| --- | --- |
+| 产品适配度 | TODO |
+| 题材与美术适配 | TODO |
+| 可承接机制 | TODO |
+| 可用资产 | TODO |
+| UI 质感与特效反馈 | TODO |
+| 视觉记忆点 | TODO |
+| 历史素材依据 | TODO |
+| 主要缺口 | TODO |
+| 是否需要替代表达 | TODO |
+
 ### 目标用户信号
 
 | 信号 | 画面或机制 | 预期筛选作用 |
@@ -544,7 +460,9 @@ $aiInputPackPath = Join-Path $systemDir 'ai-input-pack.md'
 ## 路径
 
 - 方法库：$methodologyPath
+- 全文方法论索引：$fullMethodologyIndexPath
 - 方法库相对路径：methodology/ad-creative-methodology.md
+- 全文方法论相对路径：methodology/full/README.md
 - 素材文件夹：$materialDir
 - 源视频：$destVideo
 - 关键帧联系表：$finalSheet
@@ -552,6 +470,16 @@ $aiInputPackPath = Join-Path $systemDir 'ai-input-pack.md'
 - 参考分镜：$referencePath
 - 创意方向：$directionsPath
 - 产品信息：$productBriefOutputPath
+
+## 可选产品目录
+
+$productContextMarkdown
+
+## 当前产品录屏上下文
+
+如果本次对话另附当前产品真实游戏录屏，请把它作为本次任务局部的产品依据来分析；如果需要落盘，只能放进该游戏自己的 products/<product-id>/recordings/，不要影响其他游戏或其他素材分析。
+
+当前产品录屏必须分析核心玩法体验链路、首个可验证体验、首个爽点或关键反馈出现时间、题材与美术、UI 质感、技能/特效反馈、视觉记忆点、可广告化视觉资产、真实可承接 hook 和不可编造边界。
 
 ## 视频信息
 
@@ -563,6 +491,10 @@ $aiInputPackPath = Join-Path $systemDir 'ai-input-pack.md'
 ## 第一阶段规则
 
 - 先阅读方法库，按素材缺口选择采用方法和排除方法。
+- 全文方法论仅用于按需补充解释、方法细节、案例机制或未来 Phase2 设计，不能覆盖 Phase1 边界。
+- 如果提供了产品目录，必须先以 product-profile 和 gameplay-systems 作为产品事实，再用 hook-mapping、asset-inventory、recordings、当前产品 materials/memory、根级 competitors 模块和 playbooks 做适配判断。
+- 广告表达形式、素材结构、测试优先级或创意方向池不能只根据当前产品录屏得出；必须同时结合当前产品具体素材和同玩法竞品素材。竞品素材只能放在根级 competitors/ 模块，不能放进 products/<product-id>/。
+- 如果本次对话另附当前产品真实游戏录屏，题材与美术分析是必做项：题材类型、世界观内容壳、美术风格、角色/单位卖相、敌人/Boss 卖相、场景卖相、UI 质感、技能/特效反馈、视觉记忆点、可广告化视觉资产和不适合作为广告开头的画面都必须进入判断；该录屏分析只用于本次产品判断。
 - 补写 reference-video-storyboard.md。
 - 补写 creative-script-directions.md。
 - reference-video-storyboard.md 只拆解原参考视频，不是 production storyboard。
@@ -571,6 +503,37 @@ $aiInputPackPath = Join-Path $systemDir 'ai-input-pack.md'
 - 只创建故事方向池。
 - 在用户选择方向之前，不要创建 production storyboard、production scripts、prompts 或 script-* 文件夹。
 "@ | Set-Content -LiteralPath $aiInputPackPath -Encoding UTF8
+
+$referenceTemplateVars = @{
+    Name = $Name
+    Extension = $extension
+    DurationRounded = [Math]::Round($duration, 2)
+    Width = $videoStream.width
+    Height = $videoStream.height
+    Fps = Parse-Fps $videoStream.r_frame_rate
+    StoryboardFrames = $StoryboardFrames
+    MethodologyPath = $methodologyPath
+    FullMethodologyIndexPath = $fullMethodologyIndexPath
+    ProductContextMarkdown = $productContextMarkdown
+    MaterialDir = $materialDir
+    DestVideo = $destVideo
+    FinalSheet = $finalSheet
+    FrameIndexPath = $frameIndexPath
+    ReferencePath = $referencePath
+    DirectionsPath = $directionsPath
+    ProductBriefOutputPath = $productBriefOutputPath
+}
+foreach ($templateSpec in @(
+    @{ Template = 'brief.md'; Output = $briefPath },
+    @{ Template = 'reference-video-storyboard.md'; Output = $referencePath },
+    @{ Template = 'creative-script-directions.md'; Output = $directionsPath },
+    @{ Template = 'ai-input-pack.md'; Output = $aiInputPackPath }
+)) {
+    Write-TemplateFile `
+        -TemplatePath (Join-Path $skillRootPath "templates\reference\$($templateSpec.Template)") `
+        -OutputPath $templateSpec.Output `
+        -Variables $referenceTemplateVars
+}
 
 $manifestPath = Join-Path $systemDir 'run-manifest.json'
 [ordered]@{
@@ -585,6 +548,15 @@ $manifestPath = Join-Path $systemDir 'run-manifest.json'
     brief = $briefPath
     product_brief = $productBriefOutputPath
     outputs = @($referencePath, $directionsPath)
+    product_context = if ($productContext.Enabled) {
+        [ordered]@{
+            product_id = $productContext.ProductId
+            profile_dir = $productContext.ProfileDir
+            files = $productContext.Files
+        }
+    } else {
+        $null
+    }
     temp_work_dir_kept = [bool]$KeepWork
     frame_counts = [ordered]@{
         selected = $StoryboardFrames
@@ -593,7 +565,9 @@ $manifestPath = Join-Path $systemDir 'run-manifest.json'
     }
     next_ai_inputs = @(
         '先阅读 methodology/ad-creative-methodology.md。',
+        '需要更细方法解释时再查阅 methodology/full/README.md。',
         '先阅读 _system-review/ai-input-pack.md。',
+        '如果提供了产品目录，按产品事实优先级判断方向适配度。',
         '查看一次 final_storyboard_sheet。',
         '使用 _system-review/frame-index.json 获取时间戳和联系表位置。',
         '用 AI 分析替换 outputs 中的骨架文案，并说明采用方法、排除方法、承接桥、产品证明和触发机制。'
@@ -619,4 +593,13 @@ if (-not $KeepWork) {
     reference_storyboard = $referencePath
     creative_directions = $directionsPath
     manifest = $manifestPath
+    product_context = if ($productContext.Enabled) {
+        [ordered]@{
+            product_id = $productContext.ProductId
+            profile_dir = $productContext.ProfileDir
+            files = $productContext.Files
+        }
+    } else {
+        $null
+    }
 } | ConvertTo-Json -Depth 4

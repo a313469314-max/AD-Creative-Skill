@@ -17,6 +17,10 @@
 
     [string]$ProductBriefPath,
 
+    [string]$ProductId,
+
+    [string]$ProductProfileDir,
+
     [switch]$Copy,
 
     [switch]$Move,
@@ -29,6 +33,10 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+. (Join-Path $PSScriptRoot 'product-context.ps1')
+. (Join-Path $PSScriptRoot 'lib\common.ps1')
+. (Join-Path $PSScriptRoot 'lib\template-utils.ps1')
+
 if ($VideoPaths.Count -lt 2) {
     throw 'mix mode requires at least two videos.'
 }
@@ -40,84 +48,6 @@ if ($StoryboardFrames -lt 4 -or $StoryboardFrames -gt 30) {
 }
 if ($Name -match '[\\/:*?"<>|]') {
     throw "Name contains invalid filename characters: $Name"
-}
-
-function Resolve-FilePath {
-    param([string]$Path)
-    $resolved = Resolve-Path -LiteralPath $Path -ErrorAction SilentlyContinue
-    if (-not $resolved) {
-        throw "Path not found: $Path"
-    }
-    return $resolved.Path
-}
-
-function Resolve-Executable {
-    param([string]$ExplicitPath, [string]$CommandName)
-    if (-not [string]::IsNullOrWhiteSpace($ExplicitPath)) {
-        return Resolve-FilePath $ExplicitPath
-    }
-    $cmd = Get-Command $CommandName -ErrorAction SilentlyContinue
-    if (-not $cmd) {
-        throw "$CommandName not found. Run scripts/install-ffmpeg.ps1 or pass explicit paths."
-    }
-    return $cmd.Source
-}
-
-function Invoke-Logged {
-    param(
-        [string]$Exe,
-        [string[]]$Arguments,
-        [string]$LogPath,
-        [switch]$AllowFailure
-    )
-    $stdoutPath = "$LogPath.stdout"
-    $stderrPath = "$LogPath.stderr"
-    $previousErrorActionPreference = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    try {
-        & $Exe @Arguments > $stdoutPath 2> $stderrPath
-        $exitCode = $LASTEXITCODE
-    } finally {
-        $ErrorActionPreference = $previousErrorActionPreference
-    }
-
-    $combined = @()
-    if (Test-Path -LiteralPath $stdoutPath) {
-        $combined += Get-Content -LiteralPath $stdoutPath
-        Remove-Item -LiteralPath $stdoutPath -Force
-    }
-    if (Test-Path -LiteralPath $stderrPath) {
-        $combined += Get-Content -LiteralPath $stderrPath
-        Remove-Item -LiteralPath $stderrPath -Force
-    }
-    $combined | Set-Content -LiteralPath $LogPath -Encoding UTF8
-
-    if ($exitCode -ne 0) {
-        if ($AllowFailure) {
-            return $false
-        }
-        throw "Command failed. See log: $LogPath"
-    }
-    if ($AllowFailure) {
-        return $true
-    }
-    return $true
-}
-
-function Convert-ToNullableDouble {
-    param($Value)
-    if ($null -eq $Value) {
-        return $null
-    }
-    $text = [string]$Value
-    if ([string]::IsNullOrWhiteSpace($text)) {
-        return $null
-    }
-    $parsed = 0.0
-    if ([double]::TryParse($text, [Globalization.NumberStyles]::Float, [Globalization.CultureInfo]::InvariantCulture, [ref]$parsed)) {
-        return $parsed
-    }
-    return $null
 }
 
 $ffmpeg = Resolve-Executable -ExplicitPath $FfmpegPath -CommandName 'ffmpeg'
@@ -138,56 +68,20 @@ $systemDir = Join-Path $materialDir '_system-review'
 $workDir = Join-Path $materialDir 'keyframes-work'
 New-Item -ItemType Directory -Path $materialDir, $outputsDir, $systemDir, $workDir -Force | Out-Null
 $skillRoot = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..') -ErrorAction SilentlyContinue
-$methodologyPath = if ($skillRoot) { Join-Path $skillRoot.Path 'methodology\ad-creative-methodology.md' } else { 'methodology\ad-creative-methodology.md' }
+$skillRootPath = if ($skillRoot) { $skillRoot.Path } else { Split-Path -Parent $PSScriptRoot }
+$methodologyPath = Join-Path $skillRootPath 'methodology\ad-creative-methodology.md'
+$fullMethodologyIndexPath = Join-Path $skillRootPath 'methodology\full\README.md'
+$productContext = Resolve-ProductContext -SkillRoot $skillRootPath -ProductId $ProductId -ProductProfileDir $ProductProfileDir
+$productContextMarkdown = New-ProductContextMarkdown -ProductContext $productContext
 
 $productBriefOutputPath = Join-Path $materialDir 'product-brief.md'
 if (-not [string]::IsNullOrWhiteSpace($ProductBriefPath)) {
     $resolvedProductBrief = Resolve-FilePath $ProductBriefPath
     Copy-Item -LiteralPath $resolvedProductBrief -Destination $productBriefOutputPath
 } else {
-@"
-# 产品信息简报
-
-在要求 AI 将这组参考视频映射到你的产品前，请先补全这里的信息。
-
-## 产品基础信息
-
-- 产品/游戏名称：TODO
-- 品类/赛道：TODO
-- 目标市场与受众：TODO
-- 平台与投放渠道：TODO
-
-## 核心玩法
-
-- 核心循环：TODO
-- 用户前 30 秒的真实体验：TODO
-- 广告里可以真实展示的核心交互：TODO
-- 成长、升级、merge、battle、puzzle、building、collection 或其他系统：TODO
-
-## 可售卖 Hook
-
-- 最强的幻想点或欲望点：TODO
-- 当前已经具备的视觉资产：TODO
-- 能承接这组共享参考方向的产品机制：TODO
-- hook 之后的情绪回报：TODO
-
-## 限制条件
-
-- 必须展示：TODO
-- 必须避免：TODO
-- 制作限制：TODO
-- 合规/平台限制：TODO
-
-## 映射目标
-
-- 获客目标：TODO
-- 要测试的创意角度：TODO
-- 成功指标：TODO
-
-## 隐私提醒
-
-请勿在此文件中填写 API keys、未公开财务数据、个人隐私信息或合作方私密数据。
-"@ | Set-Content -LiteralPath $productBriefOutputPath -Encoding UTF8
+    Write-TemplateFile `
+        -TemplatePath (Join-Path $skillRootPath 'templates\mix\product-brief.md') `
+        -OutputPath $productBriefOutputPath
 }
 
 $metadataItems = @()
@@ -301,6 +195,11 @@ $(
 - 汇总分析写入 `outputs/`。
 - 产品信息：[product-brief.md](product-brief.md)
 - 方法库：$methodologyPath
+- 全文方法论索引：$fullMethodologyIndexPath
+
+## 产品目录
+
+$productContextMarkdown
 
 ## 共用创意方向
 
@@ -313,6 +212,7 @@ TODO：描述这组视频共享的 hook、主题或创意方向。
 ## AI 输出要求
 
 - 先阅读方法库，说明采用方法、排除方法、承接桥、产品证明和触发机制。
+- 需要更细方法解释或案例机制时，再查阅全文方法论索引。
 - 把这些视频当作同一个方向级任务，汇总共同机制和差异点。
 - 第一阶段只输出故事方向池，不创建 production storyboard、prompt 或 script-* 文件夹。
 "@ | Set-Content -LiteralPath $briefPath -Encoding UTF8
@@ -332,6 +232,31 @@ $sharedPath = Join-Path $outputsDir 'shared-analysis-mix.md'
 | 采用方法 | TODO |
 | 排除方法及原因 | TODO |
 | Phase1 边界确认 | 只输出候选故事方向，不创建 production storyboard、prompt 或 script-* 文件夹。 |
+
+## 产品上下文适配
+
+$productContextMarkdown
+
+| 方向/机制 | 产品适配度 | 题材与美术适配 | 可承接机制 | 可用资产 | 视觉记忆点 | 历史素材依据 | 主要缺口 | 建议优先级 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO | TODO |
+
+### 题材与美术适配（真实录屏必填）
+
+如果本次任务附带当前产品的真实游戏录屏，本节必须填写，不可只停留在玩法机制判断。录屏分析默认只服务于本次产品判断，不自动写入产品增强包，也不影响其他游戏或其他素材分析。
+
+| 项目 | 当前观察 | 广告承接价值 | 风险/限制 |
+| --- | --- | --- | --- |
+| 题材类型 | TODO | TODO | TODO |
+| 世界观内容壳 | TODO | TODO | TODO |
+| 美术风格 | TODO | TODO | TODO |
+| 角色/单位卖相 | TODO | TODO | TODO |
+| 场景卖相 | TODO | TODO | TODO |
+| UI 质感 | TODO | TODO | TODO |
+| 技能/特效反馈 | TODO | TODO | TODO |
+| 视觉记忆点 | TODO | TODO | TODO |
+| 可广告化视觉资产 | TODO | TODO | TODO |
+| 不适合作为广告开头的画面 | TODO | TODO | TODO |
 
 ## 共同机制
 
@@ -367,6 +292,9 @@ $sharedPath = Join-Path $outputsDir 'shared-analysis-mix.md'
 
 | 映射项 | 当前判断 | 缺失信息 | 风险 |
 | --- | --- | --- | --- |
+| 题材与美术 | TODO | TODO | TODO |
+| UI 质感与特效反馈 | TODO | TODO | TODO |
+| 视觉记忆点 | TODO | TODO | TODO |
 | 承接桥 | TODO | TODO | TODO |
 | 产品证明 | TODO | TODO | TODO |
 | 目标用户信号 | TODO | TODO | TODO |
@@ -388,20 +316,59 @@ $aiPackPath = Join-Path $systemDir 'ai-input-pack.md'
 ## 文件
 
 - 方法库：$methodologyPath
+- 全文方法论索引：$fullMethodologyIndexPath
 - 方法库相对路径：methodology/ad-creative-methodology.md
+- 全文方法论相对路径：methodology/full/README.md
 - 任务说明：$briefPath
 - 汇总分析：$sharedPath
 - 产品信息：$productBriefOutputPath
 - 帧索引：$(Join-Path $systemDir 'frame-index.json')
 - 元数据：$(Join-Path $systemDir 'video_metadata.json')
 
+## 可选产品目录
+
+$productContextMarkdown
+
+## 当前产品录屏上下文
+
+如果本次对话另附当前产品真实游戏录屏，请把它作为本次任务局部的产品依据来分析；如果需要落盘，只能放进该游戏自己的 products/<product-id>/recordings/，不要影响其他游戏或其他素材分析。
+
+当前产品录屏必须分析核心玩法体验链路、首个可验证体验、首个爽点或关键反馈出现时间、题材与美术、UI 质感、技能/特效反馈、视觉记忆点、可广告化视觉资产、真实可承接 hook 和不可编造边界。
+
 ## 规则
 
 请先阅读方法库，按素材缺口选择采用方法和排除方法。
+全文方法论仅用于按需补充解释、方法细节、案例机制或未来 Phase2 设计，不能覆盖 Phase1 边界。
+如果提供了产品目录，必须先以 product-profile 和 gameplay-systems 作为产品事实，再用 hook-mapping、asset-inventory、recordings、当前产品 materials/memory、根级 competitors 模块和 playbooks 做适配判断。
+广告表达形式、素材结构、测试优先级或创意方向池不能只根据当前产品录屏得出；必须同时结合当前产品具体素材和同玩法竞品素材。竞品素材只能放在根级 competitors/ 模块，不能放进 products/<product-id>/。
+如果本次对话另附当前产品真实游戏录屏，题材与美术分析是必做项：题材类型、世界观内容壳、美术风格、角色/单位卖相、敌人/Boss 卖相、场景卖相、UI 质感、技能/特效反馈、视觉记忆点、可广告化视觉资产和不适合作为广告开头的画面都必须进入判断；该录屏分析只用于本次产品判断。
 请把这些视频当作一个方向级创意任务来分析，不要拆分成多个独立的 single 视频文件夹。
 做产品映射时请使用 product-brief.md。如果产品信息缺失，不要编造产品事实；输出缺失问题，并把产品映射保持为待补充状态。
 Phase1 只输出候选故事方向，不要创建 production storyboard、prompt、出图内容或 script-* 文件夹。
 "@ | Set-Content -LiteralPath $aiPackPath -Encoding UTF8
+
+$mixTemplateVars = @{
+    Name = $Name
+    SourceVideoList = (($metadataItems | ForEach-Object { "- 视频 $($_.index)：$($_.file)，$($_.duration_seconds)s，$($_.width)x$($_.height)" }) -join "`r`n")
+    MethodologyPath = $methodologyPath
+    FullMethodologyIndexPath = $fullMethodologyIndexPath
+    ProductContextMarkdown = $productContextMarkdown
+    BriefPath = $briefPath
+    SharedPath = $sharedPath
+    ProductBriefOutputPath = $productBriefOutputPath
+    FrameIndexPath = Join-Path $systemDir 'frame-index.json'
+    MetadataPath = Join-Path $systemDir 'video_metadata.json'
+}
+foreach ($templateSpec in @(
+    @{ Template = 'brief.md'; Output = $briefPath },
+    @{ Template = 'shared-analysis-mix.md'; Output = $sharedPath },
+    @{ Template = 'ai-input-pack.md'; Output = $aiPackPath }
+)) {
+    Write-TemplateFile `
+        -TemplatePath (Join-Path $skillRootPath "templates\mix\$($templateSpec.Template)") `
+        -OutputPath $templateSpec.Output `
+        -Variables $mixTemplateVars
+}
 
 $manifestPath = Join-Path $systemDir 'run-manifest.json'
 [ordered]@{
@@ -414,6 +381,15 @@ $manifestPath = Join-Path $systemDir 'run-manifest.json'
     product_brief = $productBriefOutputPath
     outputs = @($sharedPath)
     video_count = $metadataItems.Count
+    product_context = if ($productContext.Enabled) {
+        [ordered]@{
+            product_id = $productContext.ProductId
+            profile_dir = $productContext.ProfileDir
+            files = $productContext.Files
+        }
+    } else {
+        $null
+    }
 } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $manifestPath -Encoding UTF8
 
 $materialResolved = Resolve-Path -LiteralPath $materialDir
@@ -437,6 +413,15 @@ $checkResult = $checkJson | ConvertFrom-Json
     product_brief = $productBriefOutputPath
     shared_analysis = $sharedPath
     manifest = $manifestPath
+    product_context = if ($productContext.Enabled) {
+        [ordered]@{
+            product_id = $productContext.ProductId
+            profile_dir = $productContext.ProfileDir
+            files = $productContext.Files
+        }
+    } else {
+        $null
+    }
     temp_work_dir_kept = [bool]$KeepWork
     check_status = $checkResult.status
     check_errors = $checkResult.errors

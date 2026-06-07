@@ -1,0 +1,13 @@
+recordings: []
+
+schema:
+  required_fields:
+    - recording_id
+    - source_path_or_link
+    - captured_at
+    - coverage
+    - core_gameplay_chain
+    - theme_and_art_notes
+    - usable_ad_assets
+    - limits
+    - analysis_path

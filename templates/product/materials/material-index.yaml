@@ -1,0 +1,22 @@
+scope: current_product_only
+competitor_materials_module: competitors/
+
+materials:
+  winners: []
+  losers: []
+  references: []
+  production: []
+  archived: []
+
+card_schema:
+  required_fields:
+    - material_id
+    - material_type
+    - core_hook
+    - adopted_method
+    - bridge_to_product
+    - product_proof
+    - assets_used
+    - metrics
+    - reusable_structure
+    - risk_notes

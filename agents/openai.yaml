@@ -1,4 +1,4 @@
-﻿interface:
-  display_name: "AD-Creative-Skill"
+interface:
+  display_name: "AD Creative Skill"
   short_description: "参考视频拆解与产品映射"
-  default_prompt: "单条游戏广告参考视频请使用 $AD-Creative-Skill single；同方向批量视频请使用 $AD-Creative-Skill mix。在映射到自己的产品前，请先补全 product-brief.md。"
+  default_prompt: "把游戏买量参考视频交给 $ad-creative-skill 处理：单条视频默认走 single，同方向多条视频走 mix；映射到自己的产品前，请先补全 product-brief.md 或提供产品目录。"
