@@ -11,12 +11,83 @@ materials:
 card_schema:
   required_fields:
     - material_id
+    - source_material_id
     - material_type
+    - primary_material_category
+    - secondary_material_category
+    - category_reasoning
     - core_hook
     - adopted_method
     - bridge_to_product
     - product_proof
+    - expression_fidelity
+    - exaggeration_type
+    - category_fit
+    - claim_elasticity
+    - explainability_bridge
+    - scale_level
+    - platform_precedent
     - assets_used
     - metrics
+    - metrics_priority
+    - proxy_decision_metric
+    - volume_potential
+    - volume_quality_quadrant
+    - scale_driving_elements
     - reusable_structure
     - risk_notes
+
+global_rules:
+  gameplay_recordings_are_product_fact_only: true
+  actual_ad_materials_may_use_fictionalized_gameplay: true
+  judge_materials_by_available_data_not_gameplay_truth_label: true
+  material_category:
+    primary_allowed:
+      - 玩法
+      - 展示
+      - 副玩法
+    secondary_rule: "AI summarizes a coarse-grained category from the actual video content; if primary_material_category is 副玩法, secondary_material_category must be 副玩法."
+    classification_basis: "Classify by actual video content, not filename, topic keywords, or the mere presence of roles, lineup, Boss, map, welfare, or other objects."
+    granularity_rule: "Prefer reusable coarse categories. Do not split Boss打法攻略, 通关策略, 关卡技巧, 阵容打法 into separate categories when 玩法攻略 fits."
+    common_secondary:
+      玩法:
+        - 玩法介绍
+        - 玩法攻略
+        - 阵容搭配
+      展示:
+        - 角色展示
+        - 怪物展示
+        - 地图展示
+        - BOSS展示
+        - 充值福利
+        - 阵容展示
+      副玩法:
+        - 副玩法
+  matching_rules:
+    primary_key: source_material_id
+    source_material_id_from_filename: "Extract the long numeric material ID from the ad material filename, for example 2026-03-23_12864095765_10043-0317（测试）...mp4 -> 12864095765."
+    data_table_match: "Match the extracted source_material_id to the same numeric material ID in the performance data table."
+    fallback_order:
+      - exact_source_material_id
+      - manual_mapping_table
+      - normalized_filename
+    ambiguous_match_rule: "If one source_material_id maps to multiple candidate files or versions, mark ambiguous and require manual confirmation before judging."
+  metrics_priority:
+    T0:
+      - spend
+      - pay_rate
+      - pay_cost
+    T1:
+      - first_pay_rate
+      - first_pay_cost
+      - activation_cost
+    T2:
+      - ctr
+      - ecpm
+  minimum_sample_threshold:
+    spend: 300
+    activations: 5
+    below_threshold_rule: "Do not judge material quality or include it in type winner/loser summaries. It may be marked as weak acquisition / not scaled; if CTR is high, mark as attractive signal but not scaled."
+  analysis_summary_requirements:
+    - volume_and_quality_quadrants
+    - scale_driving_elements
